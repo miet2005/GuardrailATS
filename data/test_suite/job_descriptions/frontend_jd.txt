@@ -1,0 +1,14 @@
+Frontend Developer
+
+We are looking for a Frontend Developer to build modern, responsive web applications.
+
+Requirements:
+- 3+ years of experience with React and TypeScript
+- Strong CSS and responsive design skills
+- Experience with state management libraries such as Redux
+- Familiarity with testing frameworks like Jest
+- Experience collaborating with designers using Figma
+
+Nice to have:
+- Experience with Webpack or other build tools
+- Bachelor's degree in Computer Science or related field

@@ -1,0 +1,15 @@
+Backend Software Engineer
+
+We are looking for an experienced Backend Software Engineer to join our growing engineering team.
+
+Requirements:
+- 3+ years of experience building REST APIs using Python
+- Strong experience with relational databases such as PostgreSQL
+- Familiarity with cloud platforms such as AWS
+- Experience with containerization tools like Docker
+- Understanding of microservices architecture
+- Version control experience using Git
+
+Nice to have:
+- Experience with CI/CD pipelines
+- Bachelor's degree in Computer Science or related field

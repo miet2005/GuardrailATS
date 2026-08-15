@@ -1,0 +1,14 @@
+Senior Backend Engineer
+
+We are looking for a Senior Backend Engineer to lead design of distributed systems.
+
+Requirements:
+- 6+ years of professional backend development experience
+- Deep experience with distributed systems and system design
+- Strong experience with Kubernetes and container orchestration
+- Experience leading technical design reviews
+- Proven track record scaling systems to handle millions of requests
+
+Nice to have:
+- Experience mentoring junior engineers
+- Contributions to open source infrastructure projects

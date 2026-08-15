@@ -1,0 +1,14 @@
+Data Scientist
+
+We are looking for a Data Scientist to build predictive models and drive data-informed decisions.
+
+Requirements:
+- 3+ years of experience building machine learning models in Python
+- Strong experience with Pandas and NumPy for data analysis
+- Familiarity with scikit-learn or similar ML libraries
+- Experience with SQL for data querying
+- Ability to communicate findings through data visualization
+
+Nice to have:
+- Experience with TensorFlow or PyTorch
+- Master's degree in Data Science, Statistics, or related field
