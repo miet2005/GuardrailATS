@@ -6,6 +6,8 @@ GuardrailATS is an AI-powered Applicant Tracking System (ATS) that does two thin
 
 Built as a hands-on project to learn RAG-style retrieval, LLM security/guardrails, and local-first AI tooling (Hugging Face + Ollama) from the ground up.
 
+**Live demo:** https://guardrailats.streamlit.app/
+
 ---
 
 ## Why This Project Exists
@@ -21,7 +23,7 @@ GuardrailATS defends against this with a **two-tier guardrail layer** before any
 - **PDF Structural Inspection** — detects hidden text via tiny font sizes, near-invisible colors, and off-page positioning
 - **Two-Tier Prompt Injection Guardrail** — combines fast rule-based checks with an ML-based semantic classifier
 - **Hybrid ATS Scoring** — blends BM25 keyword matching with sentence-embedding semantic similarity
-- **AI-Powered Skill Extraction** — uses a local LLM (via Ollama) to extract matched/missing skills in plain English
+- **AI-Powered Skill Extraction** — uses an LLM (local via Ollama, or cloud via Groq) to extract matched/missing skills in plain English
 - **Interactive Dashboard** — Streamlit UI with a cyber-security-themed design, live security verdicts, score breakdowns, and an "Attack Sandbox" to test injection payloads directly
 - **Validated Test Suite** — 15 purpose-built test files (clean resumes, job descriptions, and 5 distinct attack variants) used to systematically find and fix real bugs during development
 
@@ -35,11 +37,11 @@ GuardrailATS defends against this with a **two-tier guardrail layer** before any
 | Tier 2 injection detection | Hugging Face `transformers` — `ProtectAI/deberta-v3-base-prompt-injection-v2` |
 | Semantic embeddings | `sentence-transformers` — `all-MiniLM-L6-v2` |
 | Keyword relevance | `rank_bm25` (BM25Okapi) |
-| Skill extraction | Ollama (local) — `llama3.2:3b` |
+| Skill extraction | Ollama (local, `llama3.2:3b`) or Groq (cloud, `llama-3.3-70b-versatile`) — switchable |
 | Dashboard | Streamlit, custom CSS (glassmorphism/cyber theme) |
 | Math/ML utilities | `scikit-learn`, `numpy` |
 
-No paid APIs are required to run this project — everything runs locally and for free.
+No paid APIs are required to run this project locally — everything runs for free, either fully offline (Ollama) or via Groq's free tier (cloud).
 
 ---
 
@@ -84,7 +86,7 @@ If either tier flags the resume, **ATS scoring is skipped entirely** — a secur
 
 ### 3. AI-Powered Skill Extraction
 
-A local LLM (`llama3.2:3b` via Ollama) is prompted with the full resume and JD text, and asked to return structured JSON: matched skills, missing skills, and a short plain-English summary. The LLM call is isolated behind a single function (`generate_skill_analysis()`), so swapping the backend (e.g., to a cloud API at deployment time) requires changing only that one function — nothing else in the pipeline.
+An LLM is prompted with the full resume and JD text, and asked to return structured JSON: matched skills, missing skills, and a short plain-English summary. The LLM call is isolated behind a single function (`generate_skill_analysis()`), which dispatches to either a local Ollama model or Groq's cloud API depending on configuration — the rest of the pipeline never needs to know which backend is active. See "Switching Between Local (Ollama) and Cloud (Groq) LLM Backends" below.
 
 ---
 
@@ -111,6 +113,7 @@ guardrail_ats/
 │   └── test_*.py            # Individual component test scripts
 │── app.py                   # Streamlit dashboard
 │── requirements.txt
+│── .gitignore
 └── README.md
 ```
 
@@ -118,7 +121,7 @@ guardrail_ats/
 
 ## Setup
 
-**Prerequisites:** Python 3.12, [Ollama](https://ollama.com/download) installed locally.
+**Prerequisites:** Python 3.12.
 
 ```powershell
 # Clone/navigate to the project, then:
@@ -126,14 +129,45 @@ python -m venv venv
 .\venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 
-# Pull the local LLM (one-time, ~2GB download)
-ollama pull llama3.2:3b
-
 # Run the dashboard
 streamlit run app.py
 ```
 
 First run will also download the Hugging Face injection-detection model (~500-700MB) and the sentence-embedding model (~80MB) automatically — one-time downloads, cached locally afterward.
+
+---
+
+## Switching Between Local (Ollama) and Cloud (Groq) LLM Backends
+
+Skill extraction (`generate_skill_analysis()` in `rag_engine.py`) can run on either a local Ollama model or Groq's cloud API. This is controlled by a single environment variable — no code changes needed to switch.
+
+**Create a `.env` file** in the project root (this file is gitignored and never committed):
+
+```
+LLM_BACKEND=ollama
+GROQ_API_KEY=your_groq_api_key_here
+```
+
+**Option 1 — Local (Ollama), the default for development:**
+1. Set `LLM_BACKEND=ollama` in `.env` (or omit the variable entirely — this is the default)
+2. Install [Ollama](https://ollama.com/download) and pull the model:
+   ```powershell
+   ollama pull llama3.2:3b
+   ```
+3. Ollama must be running in the background (it auto-starts after install) whenever the app runs. No API key needed for this path.
+
+**Option 2 — Cloud (Groq), used for the deployed version:**
+1. Create a free account at [console.groq.com](https://console.groq.com), generate an API key under **API Keys**
+2. Set both variables in `.env`:
+   ```
+   LLM_BACKEND=groq
+   GROQ_API_KEY=your_actual_key_here
+   ```
+3. No local model download or background service needed — requests go straight to Groq's API, using `llama-3.3-70b-versatile`.
+
+**Why this matters:** Ollama requires a persistent local server process, which isn't available on most free hosting platforms (see "Deployment" below) — Groq provides the same capability as a cloud API, making the app deployable, while Ollama remains the fully free, offline-capable option for local development.
+
+**When deploying** (e.g., to Streamlit Community Cloud), these same two variables are set via the platform's **secrets manager** instead of a local `.env` file — see "Deployment" below for the exact format.
 
 ---
 
@@ -167,6 +201,10 @@ Building this project surfaced several real bugs, found through systematic testi
 
 5. **JD heading noise:** standalone JD section headers (e.g., `"Requirements:"`, `"Nice to have:"`) were producing low, meaningless similarity scores when compared against unrelated resume lines, dragging down the overall match score. **Fixed** by merging short, colon-ending heading lines into the line that follows them during chunking, rather than leaving them as standalone chunks.
 
+6. **Deployment: Python version mismatch.** Streamlit Cloud's default Python version (3.14) had no available `torch==2.4.1` wheel, since that torch version predates broad 3.14 support. **Fixed** by pinning the app to Python 3.12 in Streamlit Cloud's settings, matching the local development environment.
+
+7. **Deployment: missing dependency.** `rank_bm25` (used for the hybrid scorer's keyword-matching component) had been installed locally via `pip install` but never added to `requirements.txt`, so the cloud build didn't know to install it. **Fixed** by adding `rank-bm25==0.2.2` to `requirements.txt` (the PyPI package name uses a hyphen, while the Python import uses an underscore).
+
 ---
 
 ## Known Limitations
@@ -177,7 +215,7 @@ Documented honestly rather than glossed over:
 
 - **Regex pattern rigidity:** Check #4's keyword patterns match specific phrasings closely — e.g., `"ignore all previous scoring instructions"` didn't match the `"previous instructions"` pattern due to the inserted word "scoring." This is expected and inherent to any regex-based approach; it's why Tier 2's ML model exists as the more robust complementary layer.
 
-- **Local LLM output inconsistency:** `llama3.2:3b` (a small, 3-billion-parameter local model) occasionally produces internally inconsistent structured output — e.g., mentioning a missing skill in its free-text summary while not including it in the `missing_skills` array, or incorrectly listing a skill as missing when it's clearly present in the resume. A basic JSON-extraction hardening step (stripping text outside the first/last curly braces) reduces but doesn't eliminate occasional malformed JSON output requiring a manual retry. A larger or cloud-hosted model would likely be more consistent.
+- **Local LLM output inconsistency (development only):** during local development, `llama3.2:3b` (a small, 3-billion-parameter local model via Ollama) occasionally produced internally inconsistent structured output — e.g., mentioning a missing skill in its free-text summary while not including it in the `missing_skills` array, or incorrectly listing a skill as missing when it was clearly present in the resume. A basic JSON-extraction hardening step (stripping text outside the first/last curly braces) reduced but didn't eliminate occasional malformed JSON output requiring a manual retry. **The deployed version uses Groq's larger `llama-3.3-70b-versatile` model instead**, which resolved these specific inconsistencies in testing (correctly identified all matched skills with no summary/array contradictions) — though this is based on limited testing, not a guarantee of zero failure rate at scale.
 
 - **BM25 score ceiling is an estimate, not derived:** the fixed normalization ceiling used to convert raw BM25 scores to a 0-1 range (`BM25_SCORE_CEILING = 8.0`) is an empirical estimate based on observed score ranges during testing, not a scientifically or mathematically derived constant. BM25 score ranges are corpus-dependent by nature; this value may need retuning with more real-world usage.
 
@@ -196,7 +234,20 @@ Documented honestly rather than glossed over:
 
 ## Deployment
 
-*[To be filled in after deployment — will include the hosting platform used, how Ollama was swapped for a cloud LLM API for the deployed version, and any environment-specific setup notes.]*
+**Live demo:** https://guardrailats.streamlit.app/
+
+Deployed on **Streamlit Community Cloud**, connected directly to this GitHub repository for automatic redeployment on push to `main`.
+
+**LLM backend swap for deployment:** since Ollama requires a persistent local server process (incompatible with most serverless/free hosting platforms), the deployed version uses **Groq's cloud API** (running `llama-3.3-70b-versatile`) instead of local Ollama for skill extraction. This required no changes outside `generate_skill_analysis()` in `rag_engine.py` — the `LLM_BACKEND` environment variable (`"ollama"` or `"groq"`) switches between the two, set via Streamlit Cloud's secrets manager rather than a local `.env` file:
+
+```toml
+LLM_BACKEND = "groq"
+GROQ_API_KEY = "your_actual_key_here"
+```
+
+**Deployment issues found and fixed along the way:** see items 6 and 7 in "Bugs Found & Fixed During Development" above (Python version pinning, missing `rank-bm25` dependency).
+
+**Hugging Face Spaces was evaluated as a second deployment target** but not pursued — Hugging Face changed its free-tier policy to require a paid PRO plan for Docker/Gradio-based Spaces (the only SDK paths that support Streamlit apps), which wasn't worth the cost for this project. One fully working, well-tested deployment was judged sufficient.
 
 ---
 
