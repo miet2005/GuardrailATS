@@ -253,13 +253,7 @@ GROQ_API_KEY = "your_actual_key_here"
 ## Acknowledgments
 
 Built as a hands-on learning project to understand RAG-style architectures, LLM security/guardrails, and local-first AI tooling from first principles — including the debugging process, not just a working end result.
-<<<<<<< HEAD
 
 ---
 
 <p align="center">Made with ❤️ by Miet</p>
-=======
----
-
-<p align="center">Made with ❤️ by Miet</p>
->>>>>>> 560be59f1039fdf1f196836b9faab7b891923515
