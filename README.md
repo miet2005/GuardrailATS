@@ -247,7 +247,6 @@ GROQ_API_KEY = "your_actual_key_here"
 
 **Deployment issues found and fixed along the way:** see items 6 and 7 in "Bugs Found & Fixed During Development" above (Python version pinning, missing `rank-bm25` dependency).
 
-**Hugging Face Spaces was evaluated as a second deployment target** but not pursued — Hugging Face changed its free-tier policy to require a paid PRO plan for Docker/Gradio-based Spaces (the only SDK paths that support Streamlit apps), which wasn't worth the cost for this project. One fully working, well-tested deployment was judged sufficient.
 
 ---
 
