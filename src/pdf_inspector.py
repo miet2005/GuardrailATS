@@ -142,7 +142,7 @@ def is_color_near_white(rgb, tolerance=10):
     )
 
 
-def detect_anomalies(spans, font_size_threshold=5.0, color_tolerance=10):
+def detect_anomalies(spans, font_size_threshold=4.0, color_tolerance=10):
     """
     Scans extracted text spans for signs of hidden/invisible content commonly
     used to smuggle prompt injection payloads into resumes.
